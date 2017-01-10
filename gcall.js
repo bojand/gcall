@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const {version} = require('../package.json')
+const { version } = require('./package.json')
 const program = require('commander')
 const gi = require('grpc-inspect')
 const chalk = require('chalk')
@@ -32,15 +32,15 @@ const {
   metadata
 } = program
 
-console.dir(program.args)
-console.dir(proto)
-console.dir(service)
-console.dir(data)
-console.dir(host)
-console.dir(secure)
-console.dir(output)
-console.dir(metadata)
-console.log('======')
+// console.dir(program.args)
+// console.dir(proto)
+// console.dir(service)
+// console.dir(data)
+// console.dir(host)
+// console.dir(secure)
+// console.dir(output)
+// console.dir(metadata)
+// console.log('======')
 
 function getCallDescription (callDesc) {
   const { name, requestStream, responseStream, requestName, responseName } = callDesc
@@ -48,11 +48,11 @@ function getCallDescription (callDesc) {
   const resName = chalk.green(responseName)
   const reqDesc = requestStream ? chalk.gray('stream ') + reqName : reqName
   const resDesc = responseStream ? chalk.gray('stream ') + resName : resName
-  return util.format('%s %s (%s) returns (%s)', figures.pointerSmall, chalk.bold(name), reqDesc, chalk.green(resDesc))
+  return util.format('%s %s (%s) returns (%s)', figures.pointerSmall, chalk.bold(name), reqDesc, resDesc)
 }
 
 if (!proto) {
-  console.error('Must provide proto file')
+  console.error('Must provide proto file.')
   return process.exit(128)
 }
 
@@ -67,10 +67,20 @@ if (service) {
   gservice = d.service(serviceName)
 }
 
+if (!gservice) {
+  console.error('Service \'%s\' does not exist in protocol buffer definition.', serviceName)
+  return process.exit(128)
+}
+
 if (!host) {
-  // only list
+  // only list methods for service
   gservice.methods.forEach(md => console.log(getCallDescription(md)))
   process.exit(0)
+}
+
+if (!methodName) {
+  console.error('Method name required.')
+  return process.exit(128)
 }
 
 const client = caller(host, proto, serviceName)
@@ -80,9 +90,9 @@ const methodExist =
   (typeof client[clientMethodName] === 'function')
 
 if (!methodExist) {
-  console.error('Method %s does not exist for service %s', methodName, serviceName)
+  console.error('Method \'%s\' does not exist for service %s.', methodName, serviceName)
   return process.exit(128)
 }
 
 const input = data ? str2stream(data) : process.stdin
-console.log('about to call clientMethodName')
+console.log(`about to call ${clientMethodName}`)
