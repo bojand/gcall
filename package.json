@@ -1,17 +1,14 @@
 {
-  "name": "grpcall",
-  "version": "0.1.0",
+  "name": "gcall",
+  "version": "0.0.1",
   "description": "Simple gRPC command line interface",
-  "main": "index.js",
+  "bin": "gcall.js",
   "scripts": {
     "test": "ava -v"
   },
-  "bin": {
-    "grpcall": "./bin/grpcall.js"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bojand/grpcall.git"
+    "url": "git+https://github.com/bojand/gcall.git"
   },
   "keywords": [
     "protocol buffer",
@@ -50,6 +47,9 @@
     "figures": "^2.0.0",
     "sprom": "^2.1.0",
     "standard": "^8.6.0"
+  },
+  "engines": {
+    "node": ">=6.9"
   },
   "ava": {
     "require": [
