@@ -10,7 +10,17 @@ const str2stream = require('string-to-stream')
 const caller = require('grpc-caller')
 const camelCase = require('lodash.camelcase')
 
-program.version(version).usage('[options] <method>').option('-p, --proto <file>', 'Path to protocol buffer definition').option('-S, --service <name>', 'Service name').option('-h, --host <host>', 'The service host').option('-d, --data <data>', 'Input data, otherwise standard input').option('-s, --secure', 'Use secure option').option('-o, --output', 'Output path, otherwise standard output').option('-m, --metadata <metadata data>', 'Metadata value', JSON.parse).parse(process.argv)
+program
+  .version(version)
+  .usage('[options] <method>')
+  .option('-p, --proto <file>', 'Path to protocol buffer definition')
+  .option('-S, --service <name>', 'Service name')
+  .option('-h, --host <host>', 'The service host')
+  .option('-d, --data <data>', 'Input data, otherwise standard input')
+  .option('-s, --secure', 'Use secure option')
+  .option('-o, --output', 'Output path, otherwise standard output')
+  .option('-m, --metadata <metadata data>', 'Metadata value', JSON.parse)
+  .parse(process.argv)
 
 const {
   proto,
@@ -33,15 +43,11 @@ console.dir(metadata)
 console.log('======')
 
 function getCallDescription (callDesc) {
-  const {name, requestStream, responseStream, requestName, responseName} = callDesc
+  const { name, requestStream, responseStream, requestName, responseName } = callDesc
   const reqName = chalk.blue(requestName)
   const resName = chalk.green(responseName)
-  const reqDesc = requestStream
-    ? chalk.gray('stream ') + reqName
-    : reqName
-  const resDesc = responseStream
-    ? chalk.gray('stream ') + resName
-    : resName
+  const reqDesc = requestStream ? chalk.gray('stream ') + reqName : reqName
+  const resDesc = responseStream ? chalk.gray('stream ') + resName : resName
   return util.format('%s %s (%s) returns (%s)', figures.pointerSmall, chalk.bold(name), reqDesc, chalk.green(resDesc))
 }
 
@@ -78,8 +84,5 @@ if (!methodExist) {
   return process.exit(128)
 }
 
-const input = data
-  ? str2stream(data)
-  : process.stdin
-
+const input = data ? str2stream(data) : process.stdin
 console.log('about to call clientMethodName')
