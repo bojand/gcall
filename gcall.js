@@ -9,47 +9,37 @@ const figures = require('figures')
 const str2stream = require('string-to-stream')
 const caller = require('grpc-caller')
 const camelCase = require('lodash.camelcase')
+const find = require('lodash.find')
+const concat = require('concat-stream')
+const grpc = require('grpc')
+const JSONStream = require('JSONStream')
+const fs = require('fs')
 
 program
   .version(version)
   .usage('[options] <method>')
-  .option('-p, --proto <file>', 'Path to protocol buffer definition')
-  .option('-S, --service <name>', 'Service name')
-  .option('-h, --host <host>', 'The service host')
-  .option('-d, --data <data>', 'Input data, otherwise standard input')
-  .option('-s, --secure', 'Use secure option')
-  .option('-o, --output', 'Output path, otherwise standard output')
-  .option('-m, --metadata <metadata data>', 'Metadata value', JSON.parse)
+  .option('-p, --proto <file>', 'Path to protocol buffer definition.')
+  .option('-S, --service <name>', 'Service name. Default is the 0th found in definition.')
+  .option('-h, --host <host>', 'The service host.')
+  .option('-d, --data <data>', 'Input data, otherwise standard input.')
+  .option('-s, --secure', 'Use secure options.')
+  .option('-o, --output <file>', 'Output path, otherwise standard output.')
+  .option('-j, --json <jsonpath>', 'JSONPath for request stream parsing. Default: \'*\'.')
+  .option('-a, --array', 'Output response stream as an array. Default: false. Outputs data separated by newlines.')
+  .option('-m, --metadata <metadata data>', 'Metadata value.', JSON.parse)
   .parse(process.argv)
 
 const {
   proto,
   service,
-  data,
   host,
+  data,
   secure,
   output,
-  metadata
+  json = '*',
+  array,
+  metadata = {}
 } = program
-
-// console.dir(program.args)
-// console.dir(proto)
-// console.dir(service)
-// console.dir(data)
-// console.dir(host)
-// console.dir(secure)
-// console.dir(output)
-// console.dir(metadata)
-// console.log('======')
-
-function getCallDescription (callDesc) {
-  const { name, requestStream, responseStream, requestName, responseName } = callDesc
-  const reqName = chalk.blue(requestName)
-  const resName = chalk.green(responseName)
-  const reqDesc = requestStream ? chalk.gray('stream ') + reqName : reqName
-  const resDesc = responseStream ? chalk.gray('stream ') + resName : resName
-  return util.format('%s %s (%s) returns (%s)', figures.pointerSmall, chalk.bold(name), reqDesc, resDesc)
-}
 
 if (!proto) {
   console.error('Must provide proto file.')
@@ -83,7 +73,8 @@ if (!methodName) {
   return process.exit(128)
 }
 
-const client = caller(host, proto, serviceName)
+const clientOptions = secure ? grpc.credentials.createSsl() : grpc.credentials.createInsecure()
+const client = caller(host, proto, serviceName, clientOptions)
 const clientMethodName = camelCase(methodName)
 const methodExist =
   (d.methodNames(serviceName).indexOf(methodName) >= 0) &&
@@ -94,5 +85,98 @@ if (!methodExist) {
   return process.exit(128)
 }
 
+const methodDesc = find(gservice.methods, { name: methodName })
 const input = data ? str2stream(data) : process.stdin
-console.log(`about to call ${clientMethodName}`)
+
+if (!methodDesc.requestStream && !methodDesc.responseStream) {
+  const handler = concat(inputData => {
+    const payload = getRequestPayload(inputData)
+    const res = client[clientMethodName](payload, metadata)
+    res.then(writeOutput, errorHandler)
+  })
+  input.on('error', errorHandler)
+  input.pipe(handler)
+} else if (methodDesc.requestStream && !methodDesc.responseStream) {
+  const { call, res } = client[clientMethodName](metadata)
+  res.then(writeOutput, errorHandler)
+  handleInputStream(input, call)
+} else if (!methodDesc.requestStream && methodDesc.responseStream) {
+  const out = output ? fs.createWriteStream(output) : process.stdout
+  const handler = concat(inputData => {
+    const payload = getRequestPayload(inputData)
+    const call = client[clientMethodName](payload, metadata)
+    handleOutputStream(call, out)
+  })
+  input.on('error', errorHandler)
+  input.pipe(handler)
+} else if (methodDesc.requestStream && methodDesc.responseStream) {
+  const out = output ? fs.createWriteStream(output) : process.stdout
+  const call = client[clientMethodName](metadata)
+  handleInputStream(input, call, false)
+  handleOutputStream(call, out)
+} else {
+  console.error('Unsupported call type.')
+  process.exit(128)
+}
+
+function getCallDescription (callDesc) {
+  const { name, requestStream, responseStream, requestName, responseName } = callDesc
+  const reqName = chalk.blue(requestName)
+  const resName = chalk.green(responseName)
+  const reqDesc = requestStream ? chalk.gray('stream ') + reqName : reqName
+  const resDesc = responseStream ? chalk.gray('stream ') + resName : resName
+  return util.format('%s %s (%s) returns (%s)', figures.pointerSmall, chalk.bold(name), reqDesc, resDesc)
+}
+
+function writeOutput (res) {
+  if (output) {
+    let fdata
+    try {
+      fdata = JSON.stringify(res)
+    } catch (err) {
+      return errorHandler(err)
+    }
+    fs.writeFile(output, fdata, err => {
+      if (err) errorHandler(err)
+      else process.exit(0)
+    })
+  } else {
+    console.log(util.inspect(res, { colors: true }))
+    process.exit(0)
+  }
+}
+
+function getRequestPayload (inputData) {
+  let payload
+  try {
+    payload = JSON.parse(inputData)
+  } catch (err) {
+    console.error('Input must be valid JSON.')
+    return process.exit(128)
+  }
+  return payload
+}
+
+function errorHandler (err) {
+  console.error(err)
+  process.exit(129)
+}
+
+function handleInputStream (input, call, end = true) {
+  input
+    .pipe(JSONStream.parse(json))
+    .pipe(call)
+    .on('error', errorHandler)
+
+  if (end) {
+    input.on('end', () => call.end())
+  }
+}
+
+function handleOutputStream (call, out) {
+  call
+    .pipe(JSONStream.stringify(array ? null : false))
+    .pipe(out)
+    .on('end', () => process.exit(0))
+    .on('error', errorHandler)
+}
