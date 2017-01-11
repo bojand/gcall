@@ -15,7 +15,6 @@ const grpc = require('grpc')
 const JSONStream = require('JSONStream')
 const fs = require('fs')
 
-/* eslint-disable no-multi-str */
 program
   .version(version)
   .usage('[options] <method>')
@@ -26,10 +25,9 @@ program
   .option('-s, --secure', 'Use secure options.')
   .option('-o, --output <file>', 'Output path, otherwise standard output.')
   .option('-j, --json <jsonpath>', 'JSONPath for request stream parsing. Default: \'*\'.')
-  .option('-p, --part [characters]', 'Separator character(s) for JSON stream response. \
-    If flag set, but separator string not defined, default newline is used as separator.')
+  .option('-p, --part [characters]', 'Separator character(s) for JSON stream response. If flag set, but separator, default newline is used as separator.')
   .option('-a, --array', 'Output response stream as an array. Default: false.')
-  .option('-m, --metadata <metadata data>', 'Metadata value.', JSON.parse)
+  .option('-m, --metadata <data>', 'Metadata value.', JSON.parse)
   .parse(process.argv)
 
 const {
