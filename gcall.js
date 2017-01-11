@@ -15,6 +15,7 @@ const grpc = require('grpc')
 const JSONStream = require('JSONStream')
 const fs = require('fs')
 
+/* eslint-disable no-multi-str */
 program
   .version(version)
   .usage('[options] <method>')
@@ -25,7 +26,9 @@ program
   .option('-s, --secure', 'Use secure options.')
   .option('-o, --output <file>', 'Output path, otherwise standard output.')
   .option('-j, --json <jsonpath>', 'JSONPath for request stream parsing. Default: \'*\'.')
-  .option('-a, --array', 'Output response stream as an array. Default: false. Outputs data separated by newlines.')
+  .option('-p, --part [characters]', 'Separator character(s) for JSON stream response. \
+    If flag set, but separator string not defined, default newline is used as separator.')
+  .option('-a, --array', 'Output response stream as an array. Default: false.')
   .option('-m, --metadata <metadata data>', 'Metadata value.', JSON.parse)
   .parse(process.argv)
 
@@ -38,6 +41,7 @@ const {
   output,
   json = '*',
   array,
+  part,
   metadata = {}
 } = program
 
@@ -174,8 +178,17 @@ function handleInputStream (input, call, end = true) {
 }
 
 function handleOutputStream (call, out) {
+  let strOpts = ['', '', '']
+  if (array) {
+    strOpts = [null]
+  } else if (part === true) {
+    strOpts = [false]
+  } else if (typeof part === 'string') {
+    strOpts = ['', part, '']
+  }
+
   call
-    .pipe(JSONStream.stringify(array ? null : false))
+    .pipe(JSONStream.stringify(...strOpts))
     .pipe(out)
     .on('end', () => process.exit(0))
     .on('error', errorHandler)
