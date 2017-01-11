@@ -25,7 +25,7 @@ program
   .option('-s, --secure', 'Use secure options.')
   .option('-o, --output <file>', 'Output path, otherwise standard output.')
   .option('-j, --json <jsonpath>', 'JSONPath for request stream parsing. Default: \'*\'.')
-  .option('-p, --part [characters]', 'Separator character(s) for JSON stream response. If flag set, but separator, default newline is used as separator.')
+  .option('-p, --part [characters]', 'Separator character(s) for JSON stream response. If flag set, but no separator is defined, default newline is used as separator.')
   .option('-a, --array', 'Output response stream as an array. Default: false.')
   .option('-m, --metadata <data>', 'Metadata value.', JSON.parse)
   .parse(process.argv)
