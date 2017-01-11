@@ -37,8 +37,12 @@
     "grpc-caller": "^0.1.1",
     "grpc-inspect": "^0.1.1",
     "ip": "^1.1.4",
+    "js-yaml": "^3.7.0",
+    "lodash.assign": "^4.2.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.find": "^4.6.0",
+    "lodash.pick": "^4.4.0",
+    "streaming-json-stringify": "^3.1.0",
     "string-to-stream": "^1.1.0"
   },
   "devDependencies": {
