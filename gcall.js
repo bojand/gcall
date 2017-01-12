@@ -12,7 +12,7 @@ const camelCase = require('lodash.camelcase')
 const find = require('lodash.find')
 const pick = require('lodash.pick')
 const assign = require('lodash.assign')
-const concat = require('concat-stream')
+const readall = require('readall')
 const grpc = require('grpc')
 const JSONStream = require('JSONStream')
 const fs = require('fs')
@@ -25,16 +25,16 @@ program
   .usage('[options] <rpc>')
   .option('-p, --proto <file>', 'Path to protocol buffer definition.')
   .option('-h, --host <host>', 'The service host.')
-  .option('-S, --service <name>', 'Service name. Default is the 0th found in definition.')
   .option('-d, --data <data>', 'Input data, otherwise standard input.')
-  .option('-s, --secure', 'Use secure options.')
   .option('-o, --output <file>', 'Output path, otherwise standard output.')
-  .option('-j, --json [jsonpath]', 'JSONPath for request stream parsing. Default: \'*\'.', '*')
+  .option('-m, --metadata <data>', 'Metadata value.', JSON.parse)
+  .option('-s, --secure', 'Use secure options.')
+  .option('-S, --service <name>', 'Service name. Default is the 0th found in definition.')
+  .option('-j, --json [jsonpath]', 'Input is JSON. JSONPath for parsing. Default: \'*\'. Set to empty to turn off JSON parsing.', '*')
   .option('-b, --breaker [characters]', 'Separator character(s) for JSON stream response. If flag set, but no separator is defined, default newline is used as separator.', false)
   .option('-a, --array', 'Output response stream as an array. Default: false.')
-  .option('-m, --metadata <data>', 'Metadata value.', JSON.parse)
   .option('-r, --rpc <name>', 'RPC to call.')
-  .option('-c, --config <file>', 'Config file with options.')
+  .option('-c, --config <file>', 'YAML or JSON config file with all the options.')
   .option('-C, --color', 'Color output. Useful for terminal output.')
   .option('-P, --pretty', 'Pretty print output.')
   .option('-X, --silent', 'Silent. Do not output anything. Just do the call.')
@@ -116,26 +116,32 @@ const methodDesc = find(gservice.methods, { name: methodName })
 const input = data ? str2stream(data) : process.stdin
 
 if (!methodDesc.requestStream && !methodDesc.responseStream) {
-  const handler = concat(inputData => {
+  input.on('error', errorHandler)
+  readall(input, (err, inputData) => {
+    if (err) {
+      return errorHandler(err)
+    }
+
     const payload = getRequestPayload(inputData)
     const res = client[clientMethodName](payload, metadata)
     res.then(writeOutput, errorHandler)
   })
-  input.on('error', errorHandler)
-  input.pipe(handler)
 } else if (methodDesc.requestStream && !methodDesc.responseStream) {
   const { call, res } = client[clientMethodName](metadata)
   res.then(writeOutput, errorHandler)
   handleInputStream(input, call)
 } else if (!methodDesc.requestStream && methodDesc.responseStream) {
   const out = output ? fs.createWriteStream(output) : process.stdout
-  const handler = concat(inputData => {
+  input.on('error', errorHandler)
+  readall(input, (err, inputData) => {
+    if (err) {
+      return errorHandler(err)
+    }
+
     const payload = getRequestPayload(inputData)
     const call = client[clientMethodName](payload, metadata)
     handleOutputStream(call, out)
   })
-  input.on('error', errorHandler)
-  input.pipe(handler)
 } else if (methodDesc.requestStream && methodDesc.responseStream) {
   const out = output ? fs.createWriteStream(output) : process.stdout
   const call = client[clientMethodName](metadata)
@@ -184,8 +190,15 @@ function writeOutput (res) {
 }
 
 function getRequestPayload (inputData) {
+  if (!json) {
+    return inputData
+  }
+
   let payload
   try {
+    if (typeof inputData !== 'string') {
+      inputData = inputData.toString()
+    }
     payload = JSON.parse(inputData)
   } catch (err) {
     console.error('Input must be valid JSON.')
@@ -200,8 +213,11 @@ function errorHandler (err) {
 }
 
 function handleInputStream (input, call, end = true) {
+  if (json) {
+    input = input.pipe(JSONStream.parse(json))
+  }
+
   input
-    .pipe(JSONStream.parse(json))
     .pipe(call)
     .on('error', errorHandler)
 
@@ -228,6 +244,9 @@ function handleOutputStream (call, out) {
 
     if (color) {
       stringify.stringifier = data => util.inspect(data, { colors: color, depth: 10 })
+      if (pretty) {
+        stringify.seperator = os.EOL
+      }
     }
 
     if (array) {
