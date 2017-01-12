@@ -22,10 +22,10 @@ const Stringify = require('streaming-json-stringify')
 
 program
   .version(version)
-  .usage('[options] <method>')
+  .usage('[options] <rpc>')
   .option('-p, --proto <file>', 'Path to protocol buffer definition.')
-  .option('-S, --service <name>', 'Service name. Default is the 0th found in definition.')
   .option('-h, --host <host>', 'The service host.')
+  .option('-S, --service <name>', 'Service name. Default is the 0th found in definition.')
   .option('-d, --data <data>', 'Input data, otherwise standard input.')
   .option('-s, --secure', 'Use secure options.')
   .option('-o, --output <file>', 'Output path, otherwise standard output.')
@@ -33,9 +33,11 @@ program
   .option('-b, --breaker [characters]', 'Separator character(s) for JSON stream response. If flag set, but no separator is defined, default newline is used as separator.', false)
   .option('-a, --array', 'Output response stream as an array. Default: false.')
   .option('-m, --metadata <data>', 'Metadata value.', JSON.parse)
+  .option('-r, --rpc <name>', 'RPC to call.')
   .option('-c, --config <file>', 'Config file with options.')
   .option('-C, --color', 'Color output. Useful for terminal output.')
   .option('-P, --pretty', 'Pretty print output.')
+  .option('-X, --silent', 'Silent. Do not output anything. Just do the call.')
   .parse(process.argv)
 
 const configFile = program.config
@@ -45,7 +47,7 @@ if (configFile && typeof configFile === 'string') {
 }
 
 const PROPS = [ 'proto', 'service', 'host', 'data', 'secure', 'output', 'json', 'array', 'breaker',
-  'metadata', 'color', 'pretty' ]
+  'metadata', 'color', 'pretty', 'silent', 'rpc' ]
 
 const options = assign({}, config, pick(program, PROPS))
 
@@ -61,6 +63,8 @@ const {
   breaker,
   color,
   pretty,
+  silent,
+  rpc,
   metadata = {}
 } = options
 
@@ -69,7 +73,7 @@ if (!proto) {
   return process.exit(128)
 }
 
-const methodName = program.args[0]
+const methodName = program.args[0] || rpc
 
 const d = gi(proto)
 const serviceName = service || d.serviceNames()[0]
@@ -92,7 +96,7 @@ if (!host) {
 }
 
 if (!methodName) {
-  console.error('Method name required.')
+  console.error('RPC method name required.')
   return process.exit(128)
 }
 
@@ -104,7 +108,7 @@ const methodExist =
   (typeof client[clientMethodName] === 'function')
 
 if (!methodExist) {
-  console.error('Method \'%s\' does not exist for service %s.', methodName, serviceName)
+  console.error('RPC method \'%s\' does not exist for service %s.', methodName, serviceName)
   return process.exit(128)
 }
 
@@ -154,18 +158,26 @@ function getCallDescription (callDesc) {
 }
 
 function writeOutput (res) {
+  if (silent) {
+    return process.exit(0)
+  }
+
   if (output) {
-    const outputStr = pretty
-      ? util.inspect(res, { depth: 10 })
-      : JSON.stringify(res)
+    const outputStr = JSON.stringify(res, null, pretty ? 2 : 0)
     fs.writeFile(output, outputStr, err => {
-      if (err) errorHandler(err)
-      else process.exit(0)
+      if (err) {
+        errorHandler(err)
+      } else {
+        process.exit(0)
+      }
     })
   } else {
-    const outputStr = pretty
-      ? util.inspect(res, { depth: 10, colors: color })
-      : JSON.stringify(res)
+    let outputStr
+    if (color) {
+      outputStr = util.inspect(res, { depth: 10, colors: true })
+    } else {
+      outputStr = JSON.stringify(res, null, pretty ? 2 : 0)
+    }
     console.log(outputStr)
     process.exit(0)
   }
@@ -199,37 +211,53 @@ function handleInputStream (input, call, end = true) {
 }
 
 function handleOutputStream (call, out) {
-  const stringify = Stringify()
-  stringify.opener = ''
-  stringify.seperator = ','
-  stringify.closer = ''
+  if (silent) {
+    call
+      .on('data', noop)
+      .on('end', () => process.exit(0))
+      .on('error', errorHandler)
+  } else {
+    const stringify = Stringify()
+    stringify.opener = ''
+    stringify.seperator = ','
+    stringify.closer = ''
 
-  if (pretty) {
-    if (color) stringify.stringifier = data => util.inspect(data, { colors: color, depth: 10 })
-    else stringify.space = 2
-  }
-
-  if (array) {
     if (pretty) {
-      stringify.opener = '[' + os.EOL
-      stringify.seperator = os.EOL + ',' + os.EOL
-      stringify.closer = os.EOL + ']' + os.EOL
-    } else {
-      stringify.opener = '['
-      if (breaker === true) stringify.seperator = os.EOL + ',' + os.EOL
-      else if (typeof breaker === 'string') stringify.seperator = breaker
-      else stringify.seperator = ','
-      stringify.closer = ']'
+      stringify.space = 2
     }
-  } else if (breaker === true) {
-    stringify.seperator = os.EOL
-  } else if (typeof breaker === 'string') {
-    stringify.seperator = breaker
-  }
 
-  call
-    .pipe(stringify)
-    .pipe(out)
-    .on('end', () => process.exit(0))
-    .on('error', errorHandler)
+    if (color) {
+      stringify.stringifier = data => util.inspect(data, { colors: color, depth: 10 })
+    }
+
+    if (array) {
+      if (pretty) {
+        stringify.opener = '[' + os.EOL
+        stringify.seperator = os.EOL + ',' + os.EOL
+        stringify.closer = os.EOL + ']' + os.EOL
+      } else {
+        stringify.opener = '['
+        if (breaker === true) {
+          stringify.seperator = os.EOL + ',' + os.EOL
+        } else if (typeof breaker === 'string') {
+          stringify.seperator = breaker
+        } else {
+          stringify.seperator = ','
+        }
+        stringify.closer = ']'
+      }
+    } else if (breaker === true) {
+      stringify.seperator = os.EOL
+    } else if (typeof breaker === 'string') {
+      stringify.seperator = breaker
+    }
+
+    call
+      .pipe(stringify)
+      .pipe(out)
+      .on('end', () => process.exit(0))
+      .on('error', errorHandler)
+  }
 }
+
+function noop () {}
