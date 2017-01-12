@@ -1,0 +1,7 @@
+---
+data:
+  message: Hello
+proto: "./test/protos/reqres.proto"
+rpc: DoSomething
+metadata:
+  request-id: 1234

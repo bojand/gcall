@@ -1,0 +1,1 @@
+{"message":"1 foo","metadata":""} | {"message":"2 bar","metadata":""} | {"message":"3 asd","metadata":""} | {"message":"4 qwe","metadata":""} | {"message":"5 rty","metadata":""} | {"message":"6 zxc","metadata":""}

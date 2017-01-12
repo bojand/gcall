@@ -31,6 +31,8 @@ Usage: gcall [options] <rpc>
     -c, --config <file>         YAML or JSON config file with all the options.
     -C, --color                 Color output. Useful for terminal output.
     -P, --pretty                Pretty print output.
+    -R, --raw                   Raw output. Do not try to JSON stringify or do anything.
+    -E, --encoding [encoding]   Encoding for raw mode file output. Default: utf8.
     -X, --silent                Silent. Do not output anything. Just do the call.
 ```
 
@@ -39,12 +41,14 @@ Usage: gcall [options] <rpc>
 * Works with all request types
 * Takes input from standard input allowing for piping or from `-d` parameter
 * Various output formatting options
+* Metadata options
+* Config file option
 
 ## Examples
 
 ### Basic
 
-List methods in a service
+List all available RPC's in a service
 
 ```sh
 $ gcall -p ./test/protos/route_guide.proto
@@ -74,7 +78,7 @@ $ gcall \
 -p ./test/protos/route_guide.proto \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
--o feature.json \
+-o ./feature.json \
 GetFeature
 ```
 
@@ -85,4 +89,76 @@ cat ./data.json | gcall \
 -p ./test/protos/route_guide.proto \
 -h 0.0.0.0:50051 \
 GetFeature
+```
+
+Add metadata using `-m` option
+
+```sh
+$ gcall \
+-p ./test/protos/route_guide.proto \
+-m "{\"Authorization\": \"Bearer 1234\"}" \
+-d "{\"latitude\":409146138,\"longitude\":-746188906}" \
+-h 0.0.0.0:50051 \
+GetFeature
+```
+
+Pretty print with `-P` option:
+
+```sh
+$ gcall \
+-p ./test/protos/route_guide.proto \
+-d "{\"latitude\":409146138,\"longitude\":-746188906}" \
+-h 0.0.0.0:50051 \
+-P \
+GetFeature
+{
+  "name": "Berkshire Valley Management Area Trail, Jefferson, NJ, USA",
+  "location": {
+    "latitude": 409146138,
+    "longitude": -746188906
+  }
+}
+```
+
+Inspect using colors with `-C` option:
+
+```sh
+$ gcall \
+-p ./test/protos/route_guide.proto \
+-d "{\"latitude\":409146138,\"longitude\":-746188906}" \
+-h 0.0.0.0:50051 \
+-C \
+GetFeature
+{ name: 'Berkshire Valley Management Area Trail, Jefferson, NJ, USA',
+ location: { latitude: 409146138, longitude: -746188906 } }
+```
+
+Run using a config file (we can do JSON or YAML).
+Note that you can combine config file and command line options.
+Command line options will overwrite any existing config file options.
+
+**config.json**
+
+```json
+{
+  "proto": "/test/protos/route_guide.proto",
+  "data": {
+    "latitude": 409146138,
+    "longitude": -746188906
+  },
+  "host": "0.0.0.0:50051",
+  "pretty": true,
+  "rpc": "GetFeature"
+}
+```
+
+```sh
+$ gcall -c config.json
+{
+  "name": "Berkshire Valley Management Area Trail, Jefferson, NJ, USA",
+  "location": {
+    "latitude": 409146138,
+    "longitude": -746188906
+  }
+}
 ```

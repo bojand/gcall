@@ -37,6 +37,8 @@ program
   .option('-c, --config <file>', 'YAML or JSON config file with all the options.')
   .option('-C, --color', 'Color output. Useful for terminal output.')
   .option('-P, --pretty', 'Pretty print output.')
+  .option('-R, --raw', 'Raw output. Do not try to JSON stringify or do anything.')
+  .option('-E, --encoding [encoding]', 'Encoding for raw mode file output. Default: utf8.', 'utf8')
   .option('-X, --silent', 'Silent. Do not output anything. Just do the call.')
   .parse(process.argv)
 
@@ -47,7 +49,7 @@ if (configFile && typeof configFile === 'string') {
 }
 
 const PROPS = [ 'proto', 'service', 'host', 'data', 'secure', 'output', 'json', 'array', 'breaker',
-  'metadata', 'color', 'pretty', 'silent', 'rpc' ]
+  'metadata', 'color', 'pretty', 'silent', 'rpc', 'raw', 'encoding' ]
 
 const options = assign({}, config, pick(program, PROPS))
 
@@ -65,6 +67,8 @@ const {
   pretty,
   silent,
   rpc,
+  raw,
+  encoding,
   metadata = {}
 } = options
 
@@ -113,7 +117,15 @@ if (!methodExist) {
 }
 
 const methodDesc = find(gservice.methods, { name: methodName })
-const input = data ? str2stream(data) : process.stdin
+
+const dataStr =
+  typeof data === 'string'
+  ? data
+  : json
+    ? JSON.stringify(data)
+    : data.toString()
+
+const input = data ? str2stream(dataStr) : process.stdin
 
 if (!methodDesc.requestStream && !methodDesc.responseStream) {
   input.on('error', errorHandler)
@@ -169,8 +181,8 @@ function writeOutput (res) {
   }
 
   if (output) {
-    const outputStr = JSON.stringify(res, null, pretty ? 2 : 0)
-    fs.writeFile(output, outputStr, err => {
+    const outputStr = raw ? res : JSON.stringify(res, null, pretty ? 2 : 0)
+    fs.writeFile(output, outputStr, encoding, err => {
       if (err) {
         errorHandler(err)
       } else {
@@ -182,7 +194,7 @@ function writeOutput (res) {
     if (color) {
       outputStr = util.inspect(res, { depth: 10, colors: true })
     } else {
-      outputStr = JSON.stringify(res, null, pretty ? 2 : 0)
+      outputStr = raw ? res : JSON.stringify(res, null, pretty ? 2 : 0)
     }
     console.log(outputStr)
     process.exit(0)
@@ -232,6 +244,11 @@ function handleOutputStream (call, out) {
       .on('data', noop)
       .on('end', () => process.exit(0))
       .on('error', errorHandler)
+  } else if (raw) {
+    call
+      .pipe(out)
+      .on('end', () => process.exit(0))
+      .on('error', errorHandler)
   } else {
     const stringify = Stringify()
     stringify.opener = ''
@@ -239,6 +256,7 @@ function handleOutputStream (call, out) {
     stringify.closer = ''
 
     if (pretty) {
+      stringify.seperator = ', '
       stringify.space = 2
     }
 
@@ -252,8 +270,13 @@ function handleOutputStream (call, out) {
     if (array) {
       if (pretty) {
         stringify.opener = '[' + os.EOL
-        stringify.seperator = os.EOL + ',' + os.EOL
+        stringify.seperator = ',' + os.EOL
         stringify.closer = os.EOL + ']' + os.EOL
+        stringify.stringifier = (data, replacer, space) => {
+          const r = os.EOL + ' '.repeat(space)
+          const t = JSON.stringify(data, null, space)
+          return ' '.repeat(space) + t.replace(/\r?\n|\r/g, r)
+        }
       } else {
         stringify.opener = '['
         if (breaker === true) {

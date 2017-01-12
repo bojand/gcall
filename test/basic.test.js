@@ -29,7 +29,7 @@ test('should error without a method', async t => {
     '-h', 'localhost:50051'
   ]
   const res = await t.throws(exec('./gcall.js', args))
-  t.true(res.stderr.indexOf('Method name required.') >= 0)
+  t.true(res.stderr.indexOf('RPC method name required.') >= 0)
 })
 
 test('should error with an unknown method', async t => {
@@ -40,5 +40,5 @@ test('should error with an unknown method', async t => {
     'FakeMethod'
   ]
   const res = await t.throws(exec('./gcall.js', args))
-  t.true(res.stderr.indexOf('Method \'FakeMethod\' does not exist for service RouteGuide.') >= 0)
+  t.true(res.stderr.indexOf('RPC method \'FakeMethod\' does not exist for service RouteGuide.') >= 0)
 })

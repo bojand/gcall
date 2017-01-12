@@ -7,7 +7,7 @@ service ArgService {
 }
 
 message ArgRequest {
-  string message = 1;
+  int32 index = 1;
 }
 
 message ArgReply {
