@@ -41,11 +41,11 @@ Usage: gcall [options] <rpc>
 
 ## Features
 
-* Works with all request types
-* Takes input from standard input allowing for piping or from `-d` parameter
-* Various output formatting options
+* Works with all call types
+* Takes input from standard input allowing for piping or using `-d` data CLI argument
 * Metadata options
 * Config file option
+* Various output formatting options
 
 ## Examples
 
