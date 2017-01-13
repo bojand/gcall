@@ -22,7 +22,7 @@ const Stringify = require('streaming-json-stringify')
 
 program
   .version(version)
-  .usage('[options] <rpc>')
+  .usage('[options] [rpc]')
   .option('-p, --proto <file>', 'Path to protocol buffer definition.')
   .option('-h, --host <host>', 'The service host.')
   .option('-d, --data <data>', 'Input data, otherwise standard input.')

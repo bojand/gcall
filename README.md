@@ -14,7 +14,7 @@ $ npm install -g gcall
 ## Usage
 
 ```
-Usage: gcall [options] <rpc>
+Usage: gcall [options] [rpc]
 
   Options:
 
