@@ -89,7 +89,7 @@ Input by piping
 
 ```sh
 cat ./data.json | gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -h 0.0.0.0:50051 \
 GetFeature
 ```
@@ -179,7 +179,7 @@ $ gcall.js \
 -p ./protos/route_guide.proto \
 -h 0.0.0.0:50051 \
 -j *.location \
-RecordRoute < ./test/feature_guide_db.json
+RecordRoute < ./feature_guide_db.json
 {"point_count":100,"feature_count":64,"distance":7494392,"elapsed_time":0}
 ```
 
@@ -187,7 +187,7 @@ We can pipe
 
 ```sh
 curl -s https://raw.githubusercontent.com/bojand/gcall/master/test/data/feature_guide_db.json | gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -h 0.0.0.0:50051 \
 -j *.location \
 -P \
@@ -204,7 +204,7 @@ RecordRoute
 
 ```sh
 $ gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
 -h 0.0.0.0:50051 \
 ListFeatures
@@ -215,7 +215,7 @@ We can pretty print as an array using `-a` and `-P` options:
 
 ```sh
 $ gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
 -h 0.0.0.0:50051 \
 -a \
@@ -272,7 +272,7 @@ is used by default
 
 ```sh
 $ gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
 -b \
 -h 0.0.0.0:50051 \
@@ -289,7 +289,7 @@ Or with combination of `-b` and `-a`
 
 ```sh
 $ gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
 -b \
 -a \
@@ -312,10 +312,63 @@ Or just a custom separator
 
 ```sh
 $ gcall.js \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
 -b " | " \
 -h 0.0.0.0:50051 \
 ListFeatures
 {"name":"3 Drake Lane, Pennington, NJ 08534, USA","location":{"latitude":402948455,"longitude":-747903913}} | {"name":"330 Evelyn Avenue, Hamilton Township, NJ 08619, USA","location":{"latitude":402647019,"longitude":-747071791}} | {"name":"1300 Airport Road, North Brunswick Township, NJ 08902, USA","location":{"latitude":404663628,"longitude":-744820157}} | {"name":"1007 Jersey Avenue, New Brunswick, NJ 08901, USA","location":{"latitude":404701380,"longitude":-744781745}} | {"name":"517-521 Huntington Drive, Manchester Township, NJ 08759, USA","location":{"latitude":400106455,"longitude":-742870190}} | {"name":"1-17 Bergen Court, New Brunswick, NJ 08901, USA","location":{"latitude":404839914,"longitude":-744759616}}
 ```
+
+### duplex
+
+```sh
+./gcall.js \
+-p ./protos/route_guide.proto \
+-h 0.0.0.0:50051 \
+RouteChat < ./notes.json
+{"location":{"latitude":0,"longitude":0},"message":"First message"}
+```
+
+```sh
+./gcall.js \
+-p ./protos/route_guide.proto \
+-h 0.0.0.0:50051 \
+-a \
+-P \
+RouteChat < ./notes.json
+[
+  {
+    "location": {
+      "latitude": 0,
+      "longitude": 0
+    },
+    "message": "First message"
+  },
+  {
+    "location": {
+      "latitude": 0,
+      "longitude": 0
+    },
+    "message": "Fourth message"
+  },
+  {
+    "location": {
+      "latitude": 0,
+      "longitude": 1
+    },
+    "message": "Second message"
+  },
+  {
+    "location": {
+      "latitude": 1,
+      "longitude": 0
+    },
+    "message": "Third message"
+  }
+]
+```
+
+## License
+
+  Apache-2.0
