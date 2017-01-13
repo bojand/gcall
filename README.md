@@ -51,7 +51,7 @@ Usage: gcall [options] <rpc>
 List all available RPC's in a service
 
 ```sh
-$ gcall -p ./test/protos/route_guide.proto
+$ gcall -p ./protos/route_guide.proto
 › GetFeature (Point) returns (Feature)
 › ListFeatures (Rectangle) returns (stream Feature)
 › RecordRoute (stream Point) returns (RouteSummary)
@@ -64,7 +64,7 @@ Simple request / response caller
 
 ```sh
 $ gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
 GetFeature
@@ -75,7 +75,7 @@ Output data to a file
 
 ```sh
 $ gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
 -o ./feature.json \
@@ -95,7 +95,7 @@ Add metadata using `-m` option
 
 ```sh
 $ gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -m "{\"Authorization\": \"Bearer 1234\"}" \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
@@ -106,7 +106,7 @@ Pretty print with `-P` option:
 
 ```sh
 $ gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
 -P \
@@ -124,7 +124,7 @@ Inspect using colors with `-C` option:
 
 ```sh
 $ gcall \
--p ./test/protos/route_guide.proto \
+-p ./protos/route_guide.proto \
 -d "{\"latitude\":409146138,\"longitude\":-746188906}" \
 -h 0.0.0.0:50051 \
 -C \
@@ -141,7 +141,7 @@ Command line options will overwrite any existing config file options.
 
 ```json
 {
-  "proto": "/test/protos/route_guide.proto",
+  "proto": "/protos/route_guide.proto",
   "data": {
     "latitude": 409146138,
     "longitude": -746188906
@@ -161,4 +161,146 @@ $ gcall -c config.json
     "longitude": -746188906
   }
 }
+```
+
+### Request stream
+
+`-j` flag can be used to specify [JSONPath](http://goessner.net/articles/JsonPath/)
+for JSON parsing. Default is `'*'` and normally it wouldn't be needed, depending on the
+input data structure.
+
+Input redirection can be used for input as well.
+
+```sh
+$ gcall.js \
+-p ./protos/route_guide.proto \
+-h 0.0.0.0:50051 \
+-j *.location \
+RecordRoute < ./test/feature_guide_db.json
+{"point_count":100,"feature_count":64,"distance":7494392,"elapsed_time":0}
+```
+
+We can pipe
+
+```sh
+curl -s https://raw.githubusercontent.com/bojand/gcall/master/test/data/feature_guide_db.json | gcall.js \
+-p ./test/protos/route_guide.proto \
+-h 0.0.0.0:50051 \
+-j *.location \
+-P \
+RecordRoute
+{
+  "point_count": 100,
+  "feature_count": 64,
+  "distance": 7494392,
+  "elapsed_time": 4
+}
+```
+
+### Response stream
+
+```sh
+$ gcall.js \
+-p ./test/protos/route_guide.proto \
+-d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
+-h 0.0.0.0:50051 \
+ListFeatures
+{"name":"3 Drake Lane, Pennington, NJ 08534, USA","location":{"latitude":402948455,"longitude":-747903913}},{"name":"330 Evelyn Avenue, Hamilton Township, NJ 08619, USA","location":{"latitude":402647019,"longitude":-747071791}},{"name":"1300 Airport Road, North Brunswick Township, NJ 08902, USA","location":{"latitude":404663628,"longitude":-744820157}},{"name":"1007 Jersey Avenue, New Brunswick, NJ 08901, USA","location":{"latitude":404701380,"longitude":-744781745}},{"name":"517-521 Huntington Drive, Manchester Township, NJ 08759, USA","location":{"latitude":400106455,"longitude":-742870190}},{"name":"1-17 Bergen Court, New Brunswick, NJ 08901, USA","location":{"latitude":404839914,"longitude":-744759616}}
+```
+
+We can pretty print as an array using `-a` and `-P` options:
+
+```sh
+$ gcall.js \
+-p ./test/protos/route_guide.proto \
+-d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
+-h 0.0.0.0:50051 \
+-a \
+-P \
+ListFeatures
+[
+  {
+    "name": "3 Drake Lane, Pennington, NJ 08534, USA",
+    "location": {
+      "latitude": 402948455,
+      "longitude": -747903913
+    }
+  },
+  {
+    "name": "330 Evelyn Avenue, Hamilton Township, NJ 08619, USA",
+    "location": {
+      "latitude": 402647019,
+      "longitude": -747071791
+    }
+  },
+  {
+    "name": "1300 Airport Road, North Brunswick Township, NJ 08902, USA",
+    "location": {
+      "latitude": 404663628,
+      "longitude": -744820157
+    }
+  },
+  {
+    "name": "1007 Jersey Avenue, New Brunswick, NJ 08901, USA",
+    "location": {
+      "latitude": 404701380,
+      "longitude": -744781745
+    }
+  },
+  {
+    "name": "517-521 Huntington Drive, Manchester Township, NJ 08759, USA",
+    "location": {
+      "latitude": 400106455,
+      "longitude": -742870190
+    }
+  },
+  {
+    "name": "1-17 Bergen Court, New Brunswick, NJ 08901, USA",
+    "location": {
+      "latitude": 404839914,
+      "longitude": -744759616
+    }
+  }
+]
+```
+
+Or we can do a custom separator using `-b`. If separator is not provided, newline
+is used by default
+
+```sh
+$ gcall.js \
+-p ./test/protos/route_guide.proto \
+-d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
+-b \
+-h 0.0.0.0:50051 \
+ListFeatures
+{"name":"3 Drake Lane, Pennington, NJ 08534, USA","location":{"latitude":402948455,"longitude":-747903913}}
+{"name":"330 Evelyn Avenue, Hamilton Township, NJ 08619, USA","location":{"latitude":402647019,"longitude":-747071791}}
+{"name":"1300 Airport Road, North Brunswick Township, NJ 08902, USA","location":{"latitude":404663628,"longitude":-744820157}}
+{"name":"1007 Jersey Avenue, New Brunswick, NJ 08901, USA","location":{"latitude":404701380,"longitude":-744781745}}
+{"name":"517-521 Huntington Drive, Manchester Township, NJ 08759, USA","location":{"latitude":400106455,"longitude":-742870190}}
+{"name":"1-17 Bergen Court, New Brunswick, NJ 08901, USA","location":{"latitude":404839914,"longitude":-744759616}}
+```
+
+Or with combination of `-b` and `-a`
+
+```sh
+$ gcall.js \
+-p ./test/protos/route_guide.proto \
+-d "{\"lo\":{\"latitude\":400000000,\"longitude\":-750000000},\"hi\":{\"latitude\":405000000,\"longitude\":-742000000}}" \
+-b \
+-a \
+-h 0.0.0.0:50051 \
+ListFeatures
+{"name":"3 Drake Lane, Pennington, NJ 08534, USA","location":{"latitude":402948455,"longitude":-747903913}}
+,
+{"name":"330 Evelyn Avenue, Hamilton Township, NJ 08619, USA","location":{"latitude":402647019,"longitude":-747071791}}
+,
+{"name":"1300 Airport Road, North Brunswick Township, NJ 08902, USA","location":{"latitude":404663628,"longitude":-744820157}}
+,
+{"name":"1007 Jersey Avenue, New Brunswick, NJ 08901, USA","location":{"latitude":404701380,"longitude":-744781745}}
+,
+{"name":"517-521 Huntington Drive, Manchester Township, NJ 08759, USA","location":{"latitude":400106455,"longitude":-742870190}}
+,
+{"name":"1-17 Bergen Court, New Brunswick, NJ 08901, USA","location":{"latitude":404839914,"longitude":-744759616}}]
 ```

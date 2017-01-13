@@ -272,6 +272,7 @@ function handleOutputStream (call, out) {
         stringify.opener = '[' + os.EOL
         stringify.seperator = ',' + os.EOL
         stringify.closer = os.EOL + ']' + os.EOL
+        // we need to indent
         stringify.stringifier = (data, replacer, space) => {
           const r = os.EOL + ' '.repeat(space)
           const t = JSON.stringify(data, null, space)
