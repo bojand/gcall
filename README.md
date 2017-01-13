@@ -136,36 +136,6 @@ GetFeature
  location: { latitude: 409146138, longitude: -746188906 } }
 ```
 
-Run using a config file (we can do JSON or YAML).
-Note that you can combine config file and command line options.
-Command line options will overwrite any existing config file options.
-
-**config.json**
-
-```json
-{
-  "proto": "/protos/route_guide.proto",
-  "data": {
-    "latitude": 409146138,
-    "longitude": -746188906
-  },
-  "host": "0.0.0.0:50051",
-  "pretty": true,
-  "rpc": "GetFeature"
-}
-```
-
-```sh
-$ gcall -c config.json
-{
-  "name": "Berkshire Valley Management Area Trail, Jefferson, NJ, USA",
-  "location": {
-    "latitude": 409146138,
-    "longitude": -746188906
-  }
-}
-```
-
 ### Request stream
 
 `-j` flag can be used to specify [JSONPath](http://goessner.net/articles/JsonPath/)
@@ -367,6 +337,38 @@ RouteChat < ./notes.json
     "message": "Third message"
   }
 ]
+```
+
+### Config
+
+We can run `gcall` using a config file in either JSON or YAML format.
+Note that you can combine config file and command line options.
+Command line options will overwrite any existing config file options.
+
+**config.json**
+
+```json
+{
+  "proto": "/protos/route_guide.proto",
+  "data": {
+    "latitude": 409146138,
+    "longitude": -746188906
+  },
+  "host": "0.0.0.0:50051",
+  "pretty": true,
+  "rpc": "GetFeature"
+}
+```
+
+```sh
+$ gcall -c config.json
+{
+  "name": "Berkshire Valley Management Area Trail, Jefferson, NJ, USA",
+  "location": {
+    "latitude": 409146138,
+    "longitude": -746188906
+  }
+}
 ```
 
 ## License
