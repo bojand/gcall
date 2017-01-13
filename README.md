@@ -320,7 +320,7 @@ ListFeatures
 {"name":"3 Drake Lane, Pennington, NJ 08534, USA","location":{"latitude":402948455,"longitude":-747903913}} | {"name":"330 Evelyn Avenue, Hamilton Township, NJ 08619, USA","location":{"latitude":402647019,"longitude":-747071791}} | {"name":"1300 Airport Road, North Brunswick Township, NJ 08902, USA","location":{"latitude":404663628,"longitude":-744820157}} | {"name":"1007 Jersey Avenue, New Brunswick, NJ 08901, USA","location":{"latitude":404701380,"longitude":-744781745}} | {"name":"517-521 Huntington Drive, Manchester Township, NJ 08759, USA","location":{"latitude":400106455,"longitude":-742870190}} | {"name":"1-17 Bergen Court, New Brunswick, NJ 08901, USA","location":{"latitude":404839914,"longitude":-744759616}}
 ```
 
-### duplex
+### Duplex
 
 ```sh
 ./gcall.js \
