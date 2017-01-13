@@ -2,6 +2,9 @@
 
 Simple gRPC command line interface
 
+[![npm version](https://img.shields.io/npm/v/gcall.svg?style=flat-square)](https://www.npmjs.com/package/gcall)
+[![build status](https://img.shields.io/travis/bojand/gcall/master.svg?style=flat-square)](https://travis-ci.org/bojand/gcall)
+
 ## Installation
 
 ```
