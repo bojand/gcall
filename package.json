@@ -1,7 +1,7 @@
 {
   "name": "gcall",
   "version": "0.1.0",
-  "description": "Simple gRPC command line interface",
+  "description": "Simple gRPC command-line interface",
   "bin": "gcall.js",
   "scripts": {
     "test": "ava -v"
