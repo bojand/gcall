@@ -93,15 +93,10 @@ if (!gservice) {
   return process.exit(128)
 }
 
-if (!host) {
+if (!host || !methodName) {
   // only list methods for service
   gservice.methods.forEach(md => console.log(getCallDescription(md)))
   process.exit(0)
-}
-
-if (!methodName) {
-  console.error('RPC method name required.')
-  return process.exit(128)
 }
 
 const clientOptions = secure ? grpc.credentials.createSsl() : grpc.credentials.createInsecure()
