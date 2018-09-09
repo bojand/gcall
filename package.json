@@ -41,7 +41,7 @@
     "lodash.camelcase": "^4.3.0",
     "lodash.find": "^4.6.0",
     "lodash.pick": "^4.4.0",
-    "readall": "^1.0.0",
+    "readall": "^1.1.0",
     "streaming-json-stringify": "^3.1.0",
     "string-to-stream": "^1.1.0"
   },
